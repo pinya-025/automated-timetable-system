@@ -1,0 +1,6 @@
+{
+  "name": "Automated Timetable Scheduling System",
+  "description": "ระบบจัดตารางเรียนตารางสอนอัตโนมัติแบบครบวงจร พร้อม Constraint Optimization, Drag & Drop, Conflict Detection, และ CRUD Management",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

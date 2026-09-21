@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+scheduling-engine/venv/
+venv/
+__pycache__/
+*.pyc
+
+# Production Builds
+dist/
+build/
+.vercel/
+
+# Logs & Coverage
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & Secrets
+.env*
+!.env.example
+.DS_Store
+Thumbs.db
