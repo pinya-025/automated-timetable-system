@@ -69,12 +69,42 @@ import { UserRoleManagement } from './components/crud/UserRoleManagement';
 import { ReportsView } from './components/reports/ReportsView';
 import { LoginView } from './components/auth/LoginView';
 import { SystemSettingsView } from './components/settings/SystemSettingsView';
-import { User, AppSettings } from './types';
+import { DataImportModal } from './components/common/DataImportModal';
+import { ImportCategory } from './services/importExportUtils';
+import { User, AppSettings, AcademicYear, Semester } from './types';
 
 export default function App() {
   // Master Datasets State
-  const [academicYears] = useState(initialAcademicYears);
-  const [semesters] = useState(initialSemesters);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>(() => {
+    const saved = localStorage.getItem('npu_academic_years');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+    }
+    return initialAcademicYears;
+  });
+  const [semesters, setSemesters] = useState<Semester[]>(() => {
+    const saved = localStorage.getItem('npu_semesters');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+    }
+    return initialSemesters;
+  });
+  const [activeSemesterId, setActiveSemesterId] = useState<number>(() => {
+    const saved = localStorage.getItem('npu_active_semester_id');
+    if (saved) {
+      return Number(saved);
+    }
+    return initialSemesters.find((s) => s.is_current)?.id || 1;
+  });
+
+  // Modal state for DataImportModal
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importCategory, setImportCategory] = useState<ImportCategory>('teachers');
+
+  const handleOpenImportModal = (category: ImportCategory = 'teachers') => {
+    setImportCategory(category);
+    setIsImportModalOpen(true);
+  };
   const [departments, setDepartments] = useState(initialDepartments);
   const [programs] = useState(initialPrograms);
   const [studentGroups, setStudentGroups] = useState(initialStudentGroups);
@@ -233,7 +263,9 @@ export default function App() {
   const [suggestEntryId, setSuggestEntryId] = useState<number | null>(null);
 
   // Active semester & version lookups
-  const activeSemester = semesters.find((s) => s.is_current) || semesters[0];
+  const activeSemester = useMemo(() => {
+    return semesters.find((s) => s.id === activeSemesterId) || semesters[0];
+  }, [semesters, activeSemesterId]);
   const activeVersion = versions.find((v) => v.id === activeVersionId) || versions[0];
   const isVersionPublished = activeVersion?.status === 'published';
 
@@ -529,6 +561,158 @@ export default function App() {
     setVersions((prev) => [newVersion, ...prev]);
     setEntries((prev) => [...prev, ...clonedEntries]);
     setActiveVersionId(newVersion.id);
+  };
+
+  // Academic Year & Semester Handlers
+  const handleSelectSemester = (id: number) => {
+    setActiveSemesterId(id);
+    localStorage.setItem('npu_active_semester_id', String(id));
+    const target = semesters.find((s) => s.id === id);
+    showToast(`สลับไปยัง ${target?.name || 'ภาคการศึกษาใหม่'} เรียบร้อยแล้ว`, 'info');
+  };
+
+  const handleAddAcademicYear = (yearTh: string, yearEn: string) => {
+    const newYear: AcademicYear = {
+      id: Date.now(),
+      year_th: yearTh,
+      year_en: yearEn,
+      is_current: false,
+    };
+    const updated = [...academicYears, newYear];
+    setAcademicYears(updated);
+    localStorage.setItem('npu_academic_years', JSON.stringify(updated));
+    showToast(`เพิ่มปีการศึกษา ${yearTh} สำเร็จ`, 'success');
+  };
+
+  const handleAddSemester = (
+    academicYearId: number,
+    term: number,
+    name: string,
+    startDate: string,
+    endDate: string
+  ) => {
+    const newSem: Semester = {
+      id: Date.now(),
+      academic_year_id: academicYearId,
+      term,
+      name,
+      start_date: startDate,
+      end_date: endDate,
+      is_current: false,
+    };
+    const updated = [...semesters, newSem];
+    setSemesters(updated);
+    localStorage.setItem('npu_semesters', JSON.stringify(updated));
+    showToast(`เพิ่ม ${name} สำเร็จ`, 'success');
+  };
+
+  const handleSetCurrentSemester = (id: number) => {
+    const updated = semesters.map((s) => ({
+      ...s,
+      is_current: s.id === id,
+    }));
+    setSemesters(updated);
+    localStorage.setItem('npu_semesters', JSON.stringify(updated));
+    setActiveSemesterId(id);
+    localStorage.setItem('npu_active_semester_id', String(id));
+    showToast('ตั้งเป็นภาคการศึกษาหลักของระบบเรียบร้อยแล้ว', 'success');
+  };
+
+  const handleDeleteSemester = (id: number) => {
+    if (semesters.length <= 1) {
+      alert('ไม่สามารถลบภาคการศึกษาทั้งหมดได้ ต้องมีอย่างน้อย 1 ภาคเรียน');
+      return;
+    }
+    const updated = semesters.filter((s) => s.id !== id);
+    setSemesters(updated);
+    localStorage.setItem('npu_semesters', JSON.stringify(updated));
+    if (activeSemesterId === id) {
+      setActiveSemesterId(updated[0].id);
+      localStorage.setItem('npu_active_semester_id', String(updated[0].id));
+    }
+    showToast('ลบภาคการศึกษาเรียบร้อยแล้ว', 'info');
+  };
+
+  // Bulk Data Import Handlers
+  const handleImportTeachers = (newItems: Omit<Teacher, 'id'>[], mode: 'append' | 'replace') => {
+    let nextId = mode === 'replace' ? 1 : Math.max(0, ...teachers.map((t) => t.id)) + 1;
+    const mapped: Teacher[] = newItems.map((item, idx) => ({
+      ...item,
+      id: nextId + idx,
+    }));
+    const updated = mode === 'replace' ? mapped : [...teachers, ...mapped];
+    setTeachers(updated);
+    mapped.forEach((t) => upsertRecordToSupabase('teachers', t));
+    showToast(`นำเข้าข้อมูลอาจารย์ผู้สอนสำเร็จ ${newItems.length} รายการ`, 'success');
+  };
+
+  const handleImportGroups = (newItems: Omit<StudentGroup, 'id'>[], mode: 'append' | 'replace') => {
+    let nextId = mode === 'replace' ? 1 : Math.max(0, ...studentGroups.map((g) => g.id)) + 1;
+    const mapped: StudentGroup[] = newItems.map((item, idx) => ({
+      ...item,
+      id: nextId + idx,
+    }));
+    const updated = mode === 'replace' ? mapped : [...studentGroups, ...mapped];
+    setStudentGroups(updated);
+    mapped.forEach((g) => upsertRecordToSupabase('student_groups', g));
+    showToast(`นำเข้าข้อมูลกลุ่มเรียน/ชั้นปีสำเร็จ ${newItems.length} รายการ`, 'success');
+  };
+
+  const handleImportRooms = (newItems: Omit<Room, 'id'>[], mode: 'append' | 'replace') => {
+    let nextId = mode === 'replace' ? 1 : Math.max(0, ...rooms.map((r) => r.id)) + 1;
+    const mapped: Room[] = newItems.map((item, idx) => ({
+      ...item,
+      id: nextId + idx,
+    }));
+    const updated = mode === 'replace' ? mapped : [...rooms, ...mapped];
+    setRooms(updated);
+    mapped.forEach((r) => upsertRecordToSupabase('rooms', r));
+    showToast(`นำเข้าข้อมูลห้องเรียนสำเร็จ ${newItems.length} รายการ`, 'success');
+  };
+
+  const handleImportCourses = (newItems: Omit<Course, 'id'>[], mode: 'append' | 'replace') => {
+    let nextId = mode === 'replace' ? 1 : Math.max(0, ...courses.map((c) => c.id)) + 1;
+    const mapped: Course[] = newItems.map((item, idx) => ({
+      ...item,
+      id: nextId + idx,
+    }));
+    const updated = mode === 'replace' ? mapped : [...courses, ...mapped];
+    setCourses(updated);
+    mapped.forEach((c) => upsertRecordToSupabase('courses', c));
+    showToast(`นำเข้าข้อมูลรายวิชาสำเร็จ ${newItems.length} รายการ`, 'success');
+  };
+
+  const handleImportOfferings = (rawItems: any[], mode: 'append' | 'replace') => {
+    let nextId = mode === 'replace' ? 1 : Math.max(0, ...offerings.map((o) => o.id)) + 1;
+    const mapped: CourseOffering[] = rawItems.map((raw, idx) => {
+      const course = courses.find((c) => c.code === raw.course_code || String(c.id) === String(raw.course_id));
+      const group = studentGroups.find((g) => g.code === raw.student_group_code || String(g.id) === String(raw.student_group_id));
+      const periods = raw.periods_per_session
+        ? String(raw.periods_per_session).split(',').map((p: string) => Number(p.trim()) || 2)
+        : [2];
+
+      return {
+        id: nextId + idx,
+        semester_id: activeSemesterId,
+        course_id: course?.id || courses[0]?.id || 1,
+        student_group_id: group?.id || studentGroups[0]?.id || 1,
+        teacher_id: Number(raw.teacher_id) || teachers[0]?.id || 1,
+        room_type_id: Number(raw.room_type_id) || course?.default_room_type_id || 1,
+        student_count: Number(raw.student_count) || group?.student_count || 30,
+        sessions_per_week: periods.length,
+        periods_per_session: periods,
+        must_be_consecutive: true,
+        max_sessions_per_day: 1,
+        preferred_room_id: null,
+        is_fixed: false,
+        is_active: true,
+      };
+    });
+
+    const updated = mode === 'replace' ? mapped : [...offerings, ...mapped];
+    setOfferings(updated);
+    mapped.forEach((o) => upsertRecordToSupabase('course_offerings', o));
+    showToast(`นำเข้าแผนการเปิดสอน/คาบเรียนสำเร็จ ${rawItems.length} รายการ`, 'success');
   };
 
   // Master Data CRUD Handlers (Synchronized with Supabase Database)
@@ -869,6 +1053,8 @@ export default function App() {
         currentRole={currentRole}
         onRoleChange={handleRoleChange}
         activeSemester={activeSemester}
+        semesters={semesters}
+        onSelectSemester={handleSelectSemester}
         onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
         onQuickPrint={handleQuickPrint}
         hardConflictCount={hardConflictCount}
@@ -988,6 +1174,7 @@ export default function App() {
               roomTypes={roomTypes}
               timeslots={timeslots}
               availabilities={availabilities}
+              onOpenImportModal={handleOpenImportModal}
               onAddCourse={handleAddCourse}
               onUpdateCourse={handleUpdateCourse}
               onDeleteCourse={handleDeleteCourse}
@@ -1061,6 +1248,15 @@ export default function App() {
               }}
               changeLogs={changeLogs}
               auditLogs={auditLogs}
+              academicYears={academicYears}
+              semesters={semesters}
+              activeSemesterId={activeSemesterId}
+              onSelectSemester={handleSelectSemester}
+              onAddAcademicYear={handleAddAcademicYear}
+              onAddSemester={handleAddSemester}
+              onSetCurrentSemester={handleSetCurrentSemester}
+              onDeleteSemester={handleDeleteSemester}
+              onOpenImportModal={handleOpenImportModal}
               onDataLoadedFromSupabase={(cloudData) => {
                 if (cloudData.departments) setDepartments(cloudData.departments);
                 if (cloudData.teachers) setTeachers(cloudData.teachers);
@@ -1152,6 +1348,19 @@ export default function App() {
           onApplySlot={handleApplySuggestedSlot}
         />
       )}
+
+      {/* Bulk Data Import Modal */}
+      <DataImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        defaultCategory={importCategory}
+        onImportTeachers={handleImportTeachers}
+        onImportGroups={handleImportGroups}
+        onImportRooms={handleImportRooms}
+        onImportCourses={handleImportCourses}
+        onImportOfferings={handleImportOfferings}
+      />
+
       {/* Supabase & System Action Notification Toast */}
       {toastMessage && (
         <div

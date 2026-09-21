@@ -16,6 +16,8 @@ interface NavbarProps {
   currentRole: RoleType;
   onRoleChange: (role: RoleType) => void;
   activeSemester: Semester;
+  semesters?: Semester[];
+  onSelectSemester?: (semesterId: number) => void;
   onOpenGenerateModal: () => void;
   onQuickPrint: () => void;
   hardConflictCount: number;
@@ -29,6 +31,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentRole,
   onRoleChange,
   activeSemester,
+  semesters = [],
+  onSelectSemester,
   onOpenGenerateModal,
   onQuickPrint,
   hardConflictCount,
@@ -37,6 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout,
   onNavigateToSettings,
 }) => {
+  const [semesterDropdownOpen, setSemesterDropdownOpen] = React.useState(false);
   const roleNames: Record<RoleType, { label: string; badge: string }> = {
     super_admin: { label: 'Super Admin', badge: 'bg-purple-100 text-purple-800 border-purple-300' },
     academic_admin: { label: 'Academic Admin', badge: 'bg-blue-100 text-blue-800 border-blue-300' },
@@ -79,11 +84,55 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          <div className="hidden xl:flex items-center space-x-2 pl-4 border-l border-slate-200 text-xs text-slate-600">
-            <span className="font-medium text-slate-500">ภาคการศึกษา:</span>
-            <span className="bg-slate-100 font-semibold px-2 py-1 rounded text-slate-800 border border-slate-200">
-              {activeSemester.name}
-            </span>
+          {/* Academic Semester Selector Dropdown */}
+          <div className="relative hidden xl:flex items-center space-x-2 pl-4 border-l border-slate-200 text-xs">
+            <span className="font-medium text-slate-500">ภาคเรียน:</span>
+            <button
+              type="button"
+              onClick={() => setSemesterDropdownOpen(!semesterDropdownOpen)}
+              className="bg-slate-100 hover:bg-slate-200 font-bold px-2.5 py-1 rounded text-slate-800 border border-slate-300 flex items-center space-x-1.5 transition-colors cursor-pointer"
+            >
+              <span>{activeSemester.name}</span>
+              <span className="text-[10px] text-slate-500">▼</span>
+            </button>
+
+            {semesterDropdownOpen && (
+              <div className="absolute top-8 left-16 mt-1 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in space-y-1">
+                <div className="px-2.5 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  เลือกภาคการศึกษาที่จัดตาราง
+                </div>
+                {semesters.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectSemester?.(s.id);
+                      setSemesterDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                      s.id === activeSemester.id
+                        ? 'bg-blue-50 text-blue-700 font-bold'
+                        : 'text-slate-700 hover:bg-slate-100 font-medium'
+                    }`}
+                  >
+                    <span>{s.name}</span>
+                    {s.id === activeSemester.id && <span className="text-blue-600 font-bold">✓</span>}
+                  </button>
+                ))}
+                <div className="pt-1 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSemesterDropdownOpen(false);
+                      onNavigateToSettings?.();
+                    }}
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] text-blue-600 hover:bg-blue-50 font-semibold"
+                  >
+                    ⚙️ จัดการปีการศึกษาและภาคเรียน...
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

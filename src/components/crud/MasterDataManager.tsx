@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Info,
   ChevronRight,
+  Upload,
 } from 'lucide-react';
 import {
   Course,
@@ -40,6 +41,7 @@ interface MasterDataManagerProps {
   roomTypes: RoomType[];
   timeslots: Timeslot[];
   availabilities: TeacherAvailability[];
+  onOpenImportModal?: (category?: 'teachers' | 'studentGroups' | 'rooms' | 'courses' | 'offerings') => void;
   // Courses CRUD
   onAddCourse: (c: Omit<Course, 'id'>) => void;
   onUpdateCourse: (c: Course) => void;
@@ -75,6 +77,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
   roomTypes,
   timeslots,
   availabilities,
+  onOpenImportModal,
   onAddCourse,
   onUpdateCourse,
   onDeleteCourse,
@@ -482,52 +485,64 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
           </p>
         </div>
 
-        {/* Action Button */}
-        {activeTab === 'courses' && (
-          <button
-            onClick={openAddCourse}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>เพิ่มรายวิชาใหม่</span>
-          </button>
-        )}
-        {activeTab === 'teachers' && (
-          <button
-            onClick={openAddTeacher}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>เพิ่มอาจารย์ผู้สอน</span>
-          </button>
-        )}
-        {activeTab === 'rooms' && (
-          <button
-            onClick={openAddRoom}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>เพิ่มห้องเรียนใหม่</span>
-          </button>
-        )}
-        {activeTab === 'groups' && (
-          <button
-            onClick={openAddGroup}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>เพิ่มกลุ่มเรียน</span>
-          </button>
-        )}
-        {activeTab === 'offerings' && (
-          <button
-            onClick={openAddOffering}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>เพิ่มแผนเปิดสอน</span>
-          </button>
-        )}
+        {/* Action Buttons */}
+        <div className="flex items-center space-x-2">
+          {onOpenImportModal && (
+            <button
+              onClick={() => onOpenImportModal(activeTab === 'groups' ? 'studentGroups' : activeTab as any)}
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+            >
+              <Upload className="w-4 h-4" />
+              <span>นำเข้าข้อมูล (Import)</span>
+            </button>
+          )}
+
+          {activeTab === 'courses' && (
+            <button
+              onClick={openAddCourse}
+              className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>เพิ่มรายวิชาใหม่</span>
+            </button>
+          )}
+          {activeTab === 'teachers' && (
+            <button
+              onClick={openAddTeacher}
+              className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>เพิ่มอาจารย์ผู้สอน</span>
+            </button>
+          )}
+          {activeTab === 'rooms' && (
+            <button
+              onClick={openAddRoom}
+              className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>เพิ่มห้องเรียนใหม่</span>
+            </button>
+          )}
+          {activeTab === 'groups' && (
+            <button
+              onClick={openAddGroup}
+              className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>เพิ่มกลุ่มเรียน</span>
+            </button>
+          )}
+          {activeTab === 'offerings' && (
+            <button
+              onClick={openAddOffering}
+              className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>เพิ่มแผนเปิดสอน</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Navigation Sub-tabs & Search */}

@@ -34,11 +34,14 @@ import {
   BlockedTimeslot,
   ScheduleChangeLog,
   AuditLog,
+  AcademicYear,
+  Semester,
 } from '../../types';
 import { initialSettings } from '../../data/seedData';
 import { SupabaseConnectionCard } from './SupabaseConnectionCard';
 import { TimeslotManagement } from '../crud/TimeslotManagement';
 import { AuditLogView } from '../audit/AuditLogView';
+import { AcademicYearManager } from './AcademicYearManager';
 
 interface SystemSettingsViewProps {
   settings: AppSettings;
@@ -57,6 +60,21 @@ interface SystemSettingsViewProps {
   onDeleteBlockedTimeslot?: (id: number) => void;
   changeLogs?: ScheduleChangeLog[];
   auditLogs?: AuditLog[];
+  academicYears?: AcademicYear[];
+  semesters?: Semester[];
+  activeSemesterId?: number;
+  onSelectSemester?: (semesterId: number) => void;
+  onAddAcademicYear?: (yearTh: string, yearEn: string) => void;
+  onAddSemester?: (
+    academicYearId: number,
+    term: number,
+    name: string,
+    startDate: string,
+    endDate: string
+  ) => void;
+  onSetCurrentSemester?: (semesterId: number) => void;
+  onDeleteSemester?: (semesterId: number) => void;
+  onOpenImportModal?: (category?: any) => void;
   onDataLoadedFromSupabase?: (data: {
     departments?: Department[];
     teachers?: Teacher[];
@@ -85,11 +103,22 @@ export const SystemSettingsView: React.FC<SystemSettingsViewProps> = ({
   onDeleteBlockedTimeslot,
   changeLogs = [],
   auditLogs = [],
+  academicYears = [],
+  semesters = [],
+  activeSemesterId = 1,
+  onSelectSemester,
+  onAddAcademicYear,
+  onAddSemester,
+  onSetCurrentSemester,
+  onDeleteSemester,
+  onOpenImportModal,
   onDataLoadedFromSupabase,
 }) => {
   const [formData, setFormData] = useState<AppSettings>({ ...settings });
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'schedule' | 'timeslots' | 'signers' | 'database' | 'audit' | 'preview'>('general');
+  const [activeTab, setActiveTab] = useState<
+    'general' | 'academic_years' | 'data_import' | 'schedule' | 'timeslots' | 'signers' | 'database' | 'audit' | 'preview'
+  >('general');
 
   const isSuperAdmin = currentRole === 'super_admin';
 
@@ -210,6 +239,35 @@ export const SystemSettingsView: React.FC<SystemSettingsViewProps> = ({
         >
           <Building className="w-4 h-4" />
           <span>อัตลักษณ์ & ชื่อระบบ (Branding)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('academic_years')}
+          className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all flex items-center space-x-2 whitespace-nowrap ${
+            activeTab === 'academic_years'
+              ? 'border-indigo-600 text-indigo-700'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Calendar className="w-4 h-4 text-indigo-600" />
+          <span>ปีการศึกษา & ภาคเรียน (Academic Years)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenImportModal) {
+              onOpenImportModal();
+            } else {
+              setActiveTab('data_import');
+            }
+          }}
+          className="px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer"
+        >
+          <Upload className="w-4 h-4 text-emerald-600" />
+          <span>ศูนย์นำเข้าข้อมูล (Data Import)</span>
+          <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
+            CSV / Excel
+          </span>
         </button>
         <button
           type="button"
@@ -758,6 +816,22 @@ export const SystemSettingsView: React.FC<SystemSettingsViewProps> = ({
       {activeTab === 'audit' && (
         <div className="bg-white rounded-b-xl border-x border-b border-slate-200 p-6">
           <AuditLogView changeLogs={changeLogs} auditLogs={auditLogs} />
+        </div>
+      )}
+
+      {/* Tab 8: Academic Years & Semesters */}
+      {activeTab === 'academic_years' && (
+        <div className="bg-white rounded-b-xl border-x border-b border-slate-200 p-6">
+          <AcademicYearManager
+            academicYears={academicYears}
+            semesters={semesters}
+            activeSemesterId={activeSemesterId}
+            onSelectSemester={onSelectSemester || (() => {})}
+            onAddAcademicYear={onAddAcademicYear || (() => {})}
+            onAddSemester={onAddSemester || (() => {})}
+            onSetCurrentSemester={onSetCurrentSemester || (() => {})}
+            onDeleteSemester={onDeleteSemester}
+          />
         </div>
       )}
     </div>
