@@ -2,13 +2,12 @@ import React from 'react';
 import {
   LayoutDashboard,
   Calendar,
-  AlertOctagon,
   FileText,
-  ShieldCheck,
   Database,
-  Settings,
-  Lock,
-  LogOut,
+  Users,
+  Cloud,
+  RotateCcw,
+  GraduationCap,
 } from 'lucide-react';
 import { RoleType, AppSettings, User } from '../../types';
 
@@ -29,6 +28,7 @@ interface SidebarProps {
   settings?: AppSettings;
   currentUser?: User | null;
   onLogout?: () => void;
+  onResetData?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -38,12 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   conflictCount,
   settings,
   currentUser,
-  onLogout,
+  onResetData,
 }) => {
-  const isSuperAdmin = currentRole === 'super_admin';
-  const isAcademicAdmin = currentRole === 'academic_admin' || isSuperAdmin;
-  const isDeptAdmin = currentRole === 'department_admin' || isAcademicAdmin;
-
   const menuSections = [
     {
       title: 'ระบบจัดตารางเรียนตารางสอน',
@@ -56,18 +52,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         },
         {
           id: 'timetable',
-          label: 'ตารางเรียนตารางสอน',
+          label: 'ตารางเรียน / สอน',
           icon: Calendar,
           allowed: true,
           badge: '15 คาบ',
-          badgeCount: conflictCount > 0 ? conflictCount : undefined,
+          badgeClass: 'bg-white/25 text-white',
         },
         {
           id: 'reports',
-          label: 'ตารางทางการ 15 คาบ & พิมพ์',
+          label: 'ตารางทางราชการ 15 สัปดาห์',
           icon: FileText,
           allowed: true,
-          badge: 'มรพ.',
+          badge: 'มรภ.',
+          badgeClass: 'bg-teal-600 text-white',
         },
       ],
     },
@@ -76,42 +73,74 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         {
           id: 'master_data',
-          label: 'จัดการข้อมูลหลัก (CRUD)',
+          label: 'จัดการข้อมูลหลัก (วิชา/ห้อง/ครู)',
           icon: Database,
-          allowed: isDeptAdmin,
-          badge: 'วิชา/ครู/ห้อง',
+          allowed: true,
         },
         {
           id: 'users',
-          label: 'ผู้ใช้งาน & สิทธิ์ (RBAC)',
-          icon: ShieldCheck,
-          allowed: isSuperAdmin,
-          badge: 'Super Admin',
+          label: 'ผู้ใช้งาน & กำหนดสิทธิ์',
+          icon: Users,
+          allowed: true,
+          badge: '5 ระดับ',
+          badgeClass: 'bg-slate-800 text-slate-300 border border-slate-700',
         },
         {
           id: 'settings',
-          label: 'ตั้งค่าระบบ & ฐานข้อมูล',
-          icon: Settings,
-          allowed: isAcademicAdmin,
-          badge: 'Supabase',
+          label: 'เชื่อมต่อ Supabase & Database',
+          icon: Cloud,
+          allowed: true,
         },
       ],
     },
   ];
 
+  const displayName = currentUser?.name || 'ศ.ดร.ประสิทธิ์ สุขสมบูรณ์';
+  const displayRoleLabel =
+    currentRole === 'super_admin'
+      ? 'Super Admin (Online)'
+      : currentRole === 'academic_admin'
+      ? 'Academic Admin (Online)'
+      : currentRole === 'department_admin'
+      ? 'Dept Admin (Online)'
+      : currentRole === 'teacher'
+      ? 'Teacher (Online)'
+      : 'Student (Online)';
+
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 min-h-[calc(100vh-4rem)] border-r border-slate-800">
-      {/* Top Brand Info */}
-      <div className="p-4 border-b border-slate-800">
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span className="font-semibold uppercase tracking-wider text-slate-400">Academic Portal</span>
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" title="System Online" />
+    <aside className="w-64 bg-[#1e2430] text-slate-300 flex flex-col shrink-0 min-h-screen border-r border-slate-800/80 select-none z-20">
+      {/* Top Brand Header */}
+      <div className="p-4 border-b border-slate-800/80 flex items-center space-x-3">
+        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-600/30 shrink-0">
+          <GraduationCap className="w-6 h-6" />
         </div>
-        <div className="mt-1 text-base font-semibold text-white flex items-center space-x-2 truncate">
-          <span className="truncate">{settings?.institution_name_th || 'สถาบันการอาชีวศึกษา'}</span>
+        <div className="truncate">
+          <div className="text-sm font-bold text-white tracking-wide uppercase">ACADEMIC PORTAL</div>
+          <div className="text-[11px] text-slate-400 truncate">
+            {settings?.institution_name_th || 'มหาวิทยาลัยนครพนม'}
+          </div>
         </div>
-        <div className="text-xs text-slate-400 truncate mt-0.5">
-          {settings?.faculty_name || 'ฝ่ายวิชาการและจัดตาราง'}
+      </div>
+
+      {/* User Profile Section */}
+      <div className="p-4 border-b border-slate-800/80 flex items-center space-x-3">
+        <div className="w-10 h-10 rounded-full border-2 border-blue-500 overflow-hidden bg-slate-800 shrink-0 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+          {currentUser?.avatar_url ? (
+            <img src={currentUser.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <img
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+              alt="Avatar"
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
+        <div className="truncate">
+          <div className="text-sm font-semibold text-white truncate leading-tight">{displayName}</div>
+          <div className="text-xs text-emerald-400 flex items-center space-x-1.5 mt-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse shrink-0" />
+            <span className="truncate">{displayRoleLabel}</span>
+          </div>
         </div>
       </div>
 
@@ -123,10 +152,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           return (
             <div key={sIdx}>
-              <h3 className="px-3 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
+              <h3 className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                 {section.title}
               </h3>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
@@ -135,24 +164,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id as ActiveTab)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm transition-colors text-left ${
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-colors text-left cursor-pointer ${
                         isActive
-                          ? 'bg-blue-600 text-white font-bold shadow-xs'
-                          : 'text-slate-300 hover:bg-slate-800 hover:text-white font-medium'
+                          ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                          : 'text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium'
                       }`}
                     >
                       <div className="flex items-center space-x-3 truncate">
-                        <Icon className={`w-4.5 h-4.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                         <span className="truncate">{item.label}</span>
                       </div>
                       {item.badge && (
-                        <span className="ml-1 text-xs px-2 py-0.5 rounded bg-blue-900/60 text-blue-200 border border-blue-700/50 font-medium">
+                        <span
+                          className={`ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                            isActive ? 'bg-white/20 text-white' : item.badgeClass
+                          }`}
+                        >
                           {item.badge}
-                        </span>
-                      )}
-                      {typeof item.badgeCount === 'number' && item.badgeCount > 0 && (
-                        <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-rose-500 text-white font-bold">
-                          {item.badgeCount}
                         </span>
                       )}
                     </button>
@@ -164,46 +192,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </div>
 
-      {/* Bottom User Profile & Logout */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/70 space-y-2">
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center space-x-2 truncate">
-            <div className="w-7 h-7 rounded-full bg-[#8B7D52] text-white flex items-center justify-center font-bold text-xs shrink-0">
-              {currentUser?.name?.charAt(0) || 'U'}
-            </div>
-            <div className="truncate text-left">
-              <div className="text-white font-medium text-[11px] truncate">
-                {currentUser?.name || 'ศ.ดร.ประสิทธิ์ สุขสมบูรณ์'}
-              </div>
-              <div className="text-[10px] text-slate-400 flex items-center space-x-1">
-                <Lock className="w-2.5 h-2.5 text-amber-400 inline" />
-                <span className="truncate uppercase">{currentRole}</span>
-              </div>
-            </div>
-          </div>
-
-          {onLogout && (
-            <button
-              type="button"
-              onClick={onLogout}
-              title="ออกจากระบบ เพื่อไปยังหน้าล็อกอินแยกตามสิทธิ์"
-              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors shrink-0"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {onLogout && (
-          <button
-            type="button"
-            onClick={onLogout}
-            className="w-full py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white text-[11px] font-semibold transition-all flex items-center justify-center space-x-1.5"
-          >
-            <LogOut className="w-3 h-3 text-amber-400" />
-            <span>สลับสิทธิ์ / หน้าล็อกอิน</span>
-          </button>
-        )}
+      {/* Bottom Reset Data Button */}
+      <div className="p-3 border-t border-slate-800/80">
+        <button
+          type="button"
+          onClick={onResetData}
+          className="w-full flex items-center space-x-2.5 px-3 py-2 text-xs font-semibold text-amber-400 hover:text-amber-300 hover:bg-slate-800/60 rounded-lg transition-colors cursor-pointer"
+          title="รีเซ็ตข้อมูลตัวอย่างทั้งหมดกลับเป็นค่าเริ่มต้น"
+        >
+          <RotateCcw className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>รีเซ็ตตัวอย่างข้อมูล</span>
+        </button>
       </div>
     </aside>
   );

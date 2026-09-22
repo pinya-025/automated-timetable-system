@@ -531,6 +531,48 @@ export default function App() {
     );
   };
 
+  const handleTogglePublish = () => {
+    setVersions((prev) =>
+      prev.map((v) => {
+        if (v.id === activeVersionId) {
+          const nextStatus = v.status === 'published' ? 'draft' : 'published';
+          showToast(
+            nextStatus === 'published'
+              ? 'เผยแพร่ตารางเรียน (Published) เรียบร้อยแล้ว'
+              : 'เปลี่ยนสถานะตารางเป็นแบบร่าง (Draft) แล้ว',
+            'info'
+          );
+          return {
+            ...v,
+            status: nextStatus,
+            published_at: nextStatus === 'published' ? new Date().toISOString() : undefined,
+          };
+        }
+        return v;
+      })
+    );
+  };
+
+  const handleResetData = () => {
+    if (confirm('คุณต้องการรีเซ็ตข้อมูลตัวอย่างทั้งหมดกลับเป็นค่าเริ่มต้นตามแบบระบบ หรือไม่?')) {
+      localStorage.removeItem('npu_academic_years');
+      localStorage.removeItem('npu_semesters');
+      localStorage.removeItem('npu_active_semester_id');
+      setAcademicYears(initialAcademicYears);
+      setSemesters(initialSemesters);
+      setActiveSemesterId(1);
+      setTeachers(initialTeachers);
+      setCourses(initialCourses);
+      setRooms(initialRooms);
+      setStudentGroups(initialStudentGroups);
+      setOfferings(initialCourseOfferings);
+      setEntries(initialScheduleEntries);
+      setTimeslots(initialTimeslots);
+      setBlockedTimeslots(initialBlockedTimeslots);
+      showToast('รีเซ็ตข้อมูลตัวอย่างทั้งหมดเรียบร้อยแล้ว', 'success');
+    }
+  };
+
   // Duplicate Version to Draft
   const handleDuplicateVersion = (versionId: number) => {
     const sourceVer = versions.find((v) => v.id === versionId);
@@ -1047,33 +1089,48 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900">
-      {/* Responsive Navbar */}
-      <Navbar
+    <div className="min-h-screen bg-[#f4f6f9] flex flex-row font-sans text-slate-900">
+      {/* Dark Full-Height Sidebar on the Left */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         currentRole={currentRole}
-        onRoleChange={handleRoleChange}
-        activeSemester={activeSemester}
-        semesters={semesters}
-        onSelectSemester={handleSelectSemester}
-        onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
-        onQuickPrint={handleQuickPrint}
-        hardConflictCount={hardConflictCount}
+        conflictCount={hardConflictCount}
         settings={settings}
         currentUser={currentUser}
         onLogout={handleLogout}
-        onNavigateToSettings={() => setActiveTab('settings')}
+        onResetData={handleResetData}
       />
 
-      {/* Main Content Area with Sidebar */}
-      <div className="flex-1 flex flex-col md:flex-row">
-        <Sidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
+      {/* Main Content Area on the Right */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+        {/* Top Navbar */}
+        <Navbar
           currentRole={currentRole}
-          conflictCount={hardConflictCount}
+          onRoleChange={handleRoleChange}
+          activeSemester={activeSemester}
+          semesters={semesters}
+          onSelectSemester={handleSelectSemester}
+          onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
+          onQuickPrint={handleQuickPrint}
+          hardConflictCount={hardConflictCount}
           settings={settings}
           currentUser={currentUser}
           onLogout={handleLogout}
+          onNavigateToSettings={() => setActiveTab('settings')}
+          pageTitle={
+            activeTab === 'timetable'
+              ? 'ตารางสอนรายอาจารย์'
+              : activeTab === 'dashboard'
+              ? 'แดชบอร์ดภาพรวม'
+              : activeTab === 'reports'
+              ? 'ตารางทางราชการ 15 สัปดาห์'
+              : activeTab === 'master_data'
+              ? 'จัดการข้อมูลหลัก'
+              : activeTab === 'users'
+              ? 'ผู้ใช้งาน & กำหนดสิทธิ์'
+              : 'ตั้งค่าระบบ'
+          }
         />
 
         <main className="flex-1 p-4 lg:p-6 overflow-x-hidden">
@@ -1150,6 +1207,7 @@ export default function App() {
               activeSemester={activeSemester}
               settings={settings}
               currentUser={currentUser}
+              onTogglePublish={handleTogglePublish}
             />
           )}
 

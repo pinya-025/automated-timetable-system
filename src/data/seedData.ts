@@ -96,8 +96,8 @@ export const initialPrograms: Program[] = [
 ];
 
 export const initialStudentGroups: StudentGroup[] = [
-  { id: 6, program_id: 4, department_id: 4, code: 'คธ.ช.3', name: 'คธ.ช.3', year_level: 3, student_count: 0, advisor_teacher_id: 11 },
-  { id: 7, program_id: 4, department_id: 4, code: 'ทต.ช.1', name: 'ทต.ช.1', year_level: 1, student_count: 19, advisor_teacher_id: 11 },
+  { id: 6, program_id: 4, department_id: 4, code: 'คธ.1', name: 'ปวช.1 คอมพิวเตอร์ธุรกิจ ห้อง 1', year_level: 1, student_count: 30, advisor_teacher_id: 11 },
+  { id: 7, program_id: 4, department_id: 4, code: 'กต.อ.1', name: 'ปวช.1 การตลาด ห้อง 1', year_level: 1, student_count: 25, advisor_teacher_id: 11 },
   { id: 8, program_id: 4, department_id: 4, code: 'บช.ช.2', name: 'บช.ช.2', year_level: 2, student_count: 0, advisor_teacher_id: 11 },
   { id: 9, program_id: 4, department_id: 4, code: 'ทต.ช.2', name: 'ทต.ช.2', year_level: 2, student_count: 0, advisor_teacher_id: 11 },
   { id: 10, program_id: 5, department_id: 4, code: 'คธ.ส.1', name: 'คธ.ส.1', year_level: 1, student_count: 27, advisor_teacher_id: 11 },
@@ -133,7 +133,7 @@ export const initialRooms: Room[] = [
 ];
 
 export const initialTeachers: Teacher[] = [
-  { id: 11, department_id: 4, prefix: 'อ.', name: 'ภิญญา สุขวิพัฒน์', email: 'pinya3603@gmail.com', phone: '042-532-111', max_periods_per_week: 24, max_periods_per_day: 8, max_consecutive_periods: 4, color_code: '#8B7D52' },
+  { id: 11, department_id: 4, prefix: 'อ.', name: 'ภิญญา สุขพิพัฒน์', email: 'pinya3603@gmail.com', phone: '042-532-111', max_periods_per_week: 24, max_periods_per_day: 8, max_consecutive_periods: 4, color_code: '#8B7D52' },
   { id: 1, department_id: 2, prefix: 'ดร.', name: 'กิตติศักดิ์ ศรีวิชัย', email: 'kittisak@college.ac.th', phone: '081-234-5671', max_periods_per_week: 18, max_periods_per_day: 6, max_consecutive_periods: 3, color_code: '#3b82f6' },
   { id: 2, department_id: 2, prefix: 'อ.', name: 'พรทิพย์ สุวรรณรัตน์', email: 'porntip@college.ac.th', phone: '081-234-5672', max_periods_per_week: 18, max_periods_per_day: 6, max_consecutive_periods: 3, color_code: '#10b981' },
   { id: 3, department_id: 1, prefix: 'ผศ.ดร.', name: 'อภิชาติ วัฒนาเจริญ', email: 'apichat@college.ac.th', phone: '081-234-5673', max_periods_per_week: 16, max_periods_per_day: 5, max_consecutive_periods: 3, color_code: '#8b5cf6' },
@@ -147,28 +147,26 @@ export const initialTeachers: Teacher[] = [
 ];
 
 export const initialTimeslots: Timeslot[] = [
-  { id: 1, period_number: 1, start_time: '06:00', end_time: '07:00', label: 'คาบ 1 (06:00 - 07:00)', is_lunch: false },
-  { id: 2, period_number: 2, start_time: '07:00', end_time: '08:00', label: 'คาบ 2 (07:00 - 08:00)', is_lunch: false },
-  { id: 3, period_number: 3, start_time: '08:00', end_time: '09:00', label: 'คาบ 3 (08:00 - 09:00)', is_lunch: false },
-  { id: 4, period_number: 4, start_time: '09:00', end_time: '10:00', label: 'คาบ 4 (09:00 - 10:00)', is_lunch: false },
-  { id: 5, period_number: 5, start_time: '10:00', end_time: '11:00', label: 'คาบ 5 (10:00 - 11:00)', is_lunch: false },
-  { id: 6, period_number: 6, start_time: '11:00', end_time: '12:00', label: 'คาบ 6 (11:00 - 12:00)', is_lunch: false },
-  { id: 7, period_number: 7, start_time: '12:00', end_time: '13:00', label: 'คาบ 7 (12:00 - 13:00) พักกลางวัน', is_lunch: true },
-  { id: 8, period_number: 8, start_time: '13:00', end_time: '14:00', label: 'คาบ 8 (13:00 - 14:00)', is_lunch: false },
-  { id: 9, period_number: 9, start_time: '14:00', end_time: '15:00', label: 'คาบ 9 (14:00 - 15:00)', is_lunch: false },
-  { id: 10, period_number: 10, start_time: '15:00', end_time: '16:00', label: 'คาบ 10 (15:00 - 16:00)', is_lunch: false },
-  { id: 11, period_number: 11, start_time: '16:00', end_time: '17:00', label: 'คาบ 11 (16:00 - 17:00)', is_lunch: false },
-  { id: 12, period_number: 12, start_time: '17:00', end_time: '18:00', label: 'คาบ 12 (17:00 - 18:00)', is_lunch: false },
-  { id: 13, period_number: 13, start_time: '18:00', end_time: '19:00', label: 'คาบ 13 (18:00 - 19:00)', is_lunch: false },
-  { id: 14, period_number: 14, start_time: '19:00', end_time: '20:00', label: 'คาบ 14 (19:00 - 20:00)', is_lunch: false },
-  { id: 15, period_number: 15, start_time: '20:00', end_time: '21:00', label: 'คาบ 15 (20:00 - 21:00)', is_lunch: false },
+  { id: 1, period_number: 1, start_time: '08:00', end_time: '09:00', label: 'คาบ 1 (08:00 - 09:00)', is_lunch: false },
+  { id: 2, period_number: 2, start_time: '09:00', end_time: '10:00', label: 'คาบ 2 (09:00 - 10:00)', is_lunch: false },
+  { id: 3, period_number: 3, start_time: '10:00', end_time: '11:00', label: 'คาบ 3 (10:00 - 11:00)', is_lunch: false },
+  { id: 4, period_number: 4, start_time: '11:00', end_time: '12:00', label: 'คาบ 4 (11:00 - 12:00)', is_lunch: false },
+  { id: 5, period_number: 5, start_time: '12:00', end_time: '13:00', label: 'พัก (12:00 - 13:00)', is_lunch: true },
+  { id: 6, period_number: 6, start_time: '13:00', end_time: '14:00', label: 'คาบ 6 (13:00 - 14:00)', is_lunch: false },
+  { id: 7, period_number: 7, start_time: '14:00', end_time: '15:00', label: 'คาบ 7 (14:00 - 15:00)', is_lunch: false },
+  { id: 8, period_number: 8, start_time: '15:00', end_time: '16:00', label: 'คาบ 8 (15:00 - 16:00)', is_lunch: false },
+  { id: 9, period_number: 9, start_time: '16:00', end_time: '17:00', label: 'คาบ 9 (16:00 - 17:00)', is_lunch: false },
+  { id: 10, period_number: 10, start_time: '17:00', end_time: '18:00', label: 'คาบ 10 (17:00 - 18:00)', is_lunch: false },
+  { id: 11, period_number: 11, start_time: '18:00', end_time: '19:00', label: 'คาบ 11 (18:00 - 19:00)', is_lunch: false },
+  { id: 12, period_number: 12, start_time: '19:00', end_time: '20:00', label: 'คาบ 12 (19:00 - 20:00)', is_lunch: false },
+  { id: 13, period_number: 13, start_time: '20:00', end_time: '21:00', label: 'คาบ 13 (20:00 - 21:00)', is_lunch: false },
 ];
 
 export const initialBlockedTimeslots: BlockedTimeslot[] = [
   {
     id: 1,
     day_of_week: 0, // 0 = all days
-    timeslot_id: 7,
+    timeslot_id: 5,
     start_time: '12:00',
     end_time: '13:00',
     type: 'LUNCH',
@@ -179,11 +177,11 @@ export const initialBlockedTimeslots: BlockedTimeslot[] = [
   {
     id: 2,
     day_of_week: 3, // Wednesday
-    timeslot_id: 10,
+    timeslot_id: 8,
     start_time: '15:00',
     end_time: '16:00',
     type: 'ACTIVITY',
-    title: 'กิจกรรมส่งเสริมวิชาการและชมรม (วันพุธ คาบ 10)',
+    title: 'กิจกรรมส่งเสริมวิชาการและชมรม (วันพุธ คาบ 8)',
     applies_to: 'ALL',
     is_active: true,
   },
@@ -212,12 +210,13 @@ export const initialCourses: Course[] = [
   { id: 20, department_id: 2, code: '30204-8001', name_th: 'โครงงานคอมพิวเตอร์ธุรกิจ', name_en: 'Business Computing Capstone Project', credits: 4, theory_hours: 1, practice_hours: 6, default_room_type_id: 2, is_heavy: false },
   // Thatphanom College Courses (from official timetable)
   { id: 21, department_id: 4, code: '202042008', name_th: 'การสร้างเว็บไซต์', name_en: 'Website Development', credits: 3, theory_hours: 2, practice_hours: 2, default_room_type_id: 2, is_heavy: false },
-  { id: 22, department_id: 4, code: '219102001', name_th: 'ระบบปฏิบัติการคอมพิวเตอร์', name_en: 'Computer Operating Systems', credits: 3, theory_hours: 2, practice_hours: 2, default_room_type_id: 2, is_heavy: false },
+  { id: 22, department_id: 4, code: '219102001', name_th: 'ระบบปฏิบัติการเบื้องต้น', name_en: 'Computer Operating Systems', credits: 3, theory_hours: 2, practice_hours: 2, default_room_type_id: 2, is_heavy: false },
   { id: 23, department_id: 4, code: '219102005', name_th: 'โปรแกรมตารางคำนวณ', name_en: 'Spreadsheet Program', credits: 2, theory_hours: 1, practice_hours: 2, default_room_type_id: 2, is_heavy: false },
   { id: 24, department_id: 4, code: '219102013', name_th: 'ระบบเครือข่ายคอมพิวเตอร์', name_en: 'Computer Network Systems', credits: 2, theory_hours: 1, practice_hours: 3, default_room_type_id: 2, is_heavy: false },
   { id: 25, department_id: 4, code: '219102016', name_th: 'การสร้างเว็บไซต์สำหรับธุรกิจดิจิทัล', name_en: 'Website Creation for Digital Business', credits: 3, theory_hours: 2, practice_hours: 2, default_room_type_id: 2, is_heavy: false },
-  { id: 26, department_id: 4, code: '20801001', name_th: 'ระบบปฏิบัติการและบำรุงรักษาคอมพิวเตอร์', name_en: 'OS and Computer Maintenance', credits: 3, theory_hours: 2, practice_hours: 2, default_room_type_id: 2, is_heavy: false },
+  { id: 26, department_id: 4, code: '20601001', name_th: 'ระบบปฏิบัติการและบำรุงรักษาคอมพิวเตอร์', name_en: 'OS and Computer Maintenance', credits: 3, theory_hours: 2, practice_hours: 2, default_room_type_id: 2, is_heavy: false },
   { id: 27, department_id: 4, code: '20801313', name_th: 'การจัดการตลาดดิจิทัล', name_en: 'Digital Marketing Management', credits: 3, theory_hours: 2, practice_hours: 2, default_room_type_id: 2, is_heavy: false },
+  { id: 28, department_id: 4, code: 'ACTIVITY-WED', name_th: 'กิจกรรมส่งเสริมวิชาการและอบรมฯ', name_en: 'Academic Enhancement & Training Activity', credits: 0, theory_hours: 0, practice_hours: 3, default_room_type_id: 2, is_heavy: false },
 ];
 
 export const initialCourseOfferings: CourseOffering[] = [
@@ -519,15 +518,15 @@ export const initialCourseOfferings: CourseOffering[] = [
     is_active: true,
   },
 
-  // Offerings for Teacher 11: อ.ภิญญา สุขวิพัฒน์ (Thatphanom College)
+  // Offerings for Teacher 11: อ.ภิญญา สุขพิพัฒน์ (Thatphanom College)
   {
     id: 31,
     semester_id: 1,
     course_id: 23, // 219102005 โปรแกรมตารางคำนวณ (1-2-2)
-    student_group_id: 10, // คธ.ส.1
+    student_group_id: 6, // คธ.1
     teacher_id: 11,
     room_type_id: 2,
-    student_count: 27,
+    student_count: 30,
     sessions_per_week: 1,
     periods_per_session: [3],
     must_be_consecutive: true,
@@ -540,12 +539,12 @@ export const initialCourseOfferings: CourseOffering[] = [
     id: 32,
     semester_id: 1,
     course_id: 21, // 202042008 การสร้างเว็บไซต์ (2-2-3)
-    student_group_id: 7, // ทต.ช.1
+    student_group_id: 7, // กต.อ.1
     teacher_id: 11,
     room_type_id: 2,
-    student_count: 19,
+    student_count: 25,
     sessions_per_week: 1,
-    periods_per_session: [4],
+    periods_per_session: [3],
     must_be_consecutive: true,
     max_sessions_per_day: 1,
     preferred_room_id: 12, // 0502-2202
@@ -555,11 +554,11 @@ export const initialCourseOfferings: CourseOffering[] = [
   {
     id: 33,
     semester_id: 1,
-    course_id: 26, // 20801001 ระบบปฏิบัติการและบำรุงรักษาคอมพิวเตอร์ (2-2-3)
-    student_group_id: 6, // คธ.ช.3
+    course_id: 26, // 20601001 ระบบปฏิบัติการและบำรุงรักษาคอมพิวเตอร์ (2-2-3)
+    student_group_id: 6, // คธ.1
     teacher_id: 11,
     room_type_id: 2,
-    student_count: 20,
+    student_count: 30,
     sessions_per_week: 1,
     periods_per_session: [4],
     must_be_consecutive: true,
@@ -571,17 +570,33 @@ export const initialCourseOfferings: CourseOffering[] = [
   {
     id: 34,
     semester_id: 1,
-    course_id: 22, // 219102001 ระบบปฏิบัติการคอมพิวเตอร์ (2-2-3)
-    student_group_id: 10, // คธ.ส.1
+    course_id: 22, // 219102001 ระบบปฏิบัติการเบื้องต้น (2-2-3)
+    student_group_id: 6, // คธ.1
     teacher_id: 11,
     room_type_id: 2,
-    student_count: 27,
+    student_count: 30,
     sessions_per_week: 2,
     periods_per_session: [2, 2],
     must_be_consecutive: true,
     max_sessions_per_day: 1,
     preferred_room_id: 12, // 0502-2202
     is_fixed: false,
+    is_active: true,
+  },
+  {
+    id: 37,
+    semester_id: 1,
+    course_id: 28, // ACTIVITY-WED กิจกรรมส่งเสริมวิชาการและอบรมฯ
+    student_group_id: 6, // คธ.1
+    teacher_id: 11,
+    room_type_id: 2,
+    student_count: 30,
+    sessions_per_week: 1,
+    periods_per_session: [3],
+    must_be_consecutive: true,
+    max_sessions_per_day: 1,
+    preferred_room_id: 12, // 0502-2202
+    is_fixed: true,
     is_active: true,
   },
   {
@@ -699,21 +714,23 @@ export const initialScheduleVersions: ScheduleVersion[] = [
 // Period 1: 06-07, 2: 07-08, 3: 08-09, 4: 09-10, 5: 10-11, 6: 11-12, 7: Lunch(12-13), 8: 13-14, 9: 14-15, 10: 15-16, 11: 16-17, 12: 17-18, 13: 18-19, 14: 19-20, 15: 20-21
 // Days: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
 export const initialScheduleEntries: ScheduleEntry[] = [
-  // Thatphanom College - Teacher: อ.ภิญญา สุขวิพัฒน์ (Teacher ID 11) - Matches Official Document reference
-  // Mon 13:00-16:00 (periods 8-10): Offering 31 (219102005 โปรแกรมตารางคำนวณ) Room 0502-2303
-  { id: 41, schedule_version_id: 1, course_offering_id: 31, session_index: 0, period_length: 3, day_of_week: 1, start_timeslot_id: 8, end_timeslot_id: 10, room_id: 11, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
-  // Tue 08:00-12:00 (periods 3-6): Offering 32 (202042008 การสร้างเว็บไซต์) Room 0502-2202
-  { id: 42, schedule_version_id: 1, course_offering_id: 32, session_index: 0, period_length: 4, day_of_week: 2, start_timeslot_id: 3, end_timeslot_id: 6, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
-  // Tue 13:00-17:00 (periods 8-11): Offering 33 (20801001 ระบบปฏิบัติการและบำรุงรักษาคอมพิวเตอร์) Room 0502-2202
-  { id: 43, schedule_version_id: 1, course_offering_id: 33, session_index: 0, period_length: 4, day_of_week: 2, start_timeslot_id: 8, end_timeslot_id: 11, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
-  // Wed 13:00-15:00 (periods 8-9): Offering 34 (219102001 ระบบปฏิบัติการคอมพิวเตอร์ Sess 0) Room 0502-2202
-  { id: 44, schedule_version_id: 1, course_offering_id: 34, session_index: 0, period_length: 2, day_of_week: 3, start_timeslot_id: 8, end_timeslot_id: 9, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
-  // Thu 08:00-10:00 (periods 3-4): Offering 34 (219102001 ระบบปฏิบัติการคอมพิวเตอร์ Sess 1) Room 0502-2202
-  { id: 45, schedule_version_id: 1, course_offering_id: 34, session_index: 1, period_length: 2, day_of_week: 4, start_timeslot_id: 3, end_timeslot_id: 4, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
-  // Thu 13:00-17:00 (periods 8-11): Offering 35 (219102013 ระบบเครือข่ายคอมพิวเตอร์) Room 0502-2202
-  { id: 46, schedule_version_id: 1, course_offering_id: 35, session_index: 0, period_length: 4, day_of_week: 4, start_timeslot_id: 8, end_timeslot_id: 11, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
-  // Fri 13:00-17:00 (periods 8-11): Offering 36 (219102016 การสร้างเว็บไซต์สำหรับธุรกิจดิจิทัล) Room 0502-2101
-  { id: 47, schedule_version_id: 1, course_offering_id: 36, session_index: 0, period_length: 4, day_of_week: 5, start_timeslot_id: 8, end_timeslot_id: 11, room_id: 13, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
+  // Thatphanom College - Teacher: อ.ภิญญา สุขพิพัฒน์ (Teacher ID 11) - Matches Official Document reference
+  // Mon 13:00-16:00 (periods 6-8): Offering 31 (219102005 โปรแกรมตารางคำนวณ) Room 0502-2303, Group คธ.1
+  { id: 41, schedule_version_id: 1, course_offering_id: 31, session_index: 0, period_length: 3, day_of_week: 1, start_timeslot_id: 6, end_timeslot_id: 8, room_id: 11, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
+  // Tue 09:00-12:00 (periods 2-4): Offering 32 (202042008 การสร้างเว็บไซต์) Room 0502-2202, Group กต.อ.1
+  { id: 42, schedule_version_id: 1, course_offering_id: 32, session_index: 0, period_length: 3, day_of_week: 2, start_timeslot_id: 2, end_timeslot_id: 4, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
+  // Tue 13:00-17:00 (periods 6-9): Offering 33 (20601001 ระบบปฏิบัติการและบำรุงรักษาคอมพิวเตอร์) Room 0502-2202, Group คธ.1
+  { id: 43, schedule_version_id: 1, course_offering_id: 33, session_index: 0, period_length: 4, day_of_week: 2, start_timeslot_id: 6, end_timeslot_id: 9, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
+  // Wed 13:00-15:00 (periods 6-7): Offering 34 (219102001 ระบบปฏิบัติการเบื้องต้น) Room 0502-2202, Group คธ.1
+  { id: 44, schedule_version_id: 1, course_offering_id: 34, session_index: 0, period_length: 2, day_of_week: 3, start_timeslot_id: 6, end_timeslot_id: 7, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
+  // Wed 15:00-18:00 (periods 8-10): Offering 37 (ACTIVITY-WED กิจกรรมส่งเสริมวิชาการและอบรมฯ) Room 0502-2202, Group คธ.1
+  { id: 48, schedule_version_id: 1, course_offering_id: 37, session_index: 0, period_length: 3, day_of_week: 3, start_timeslot_id: 8, end_timeslot_id: 10, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
+  // Thu 08:00-10:00 (periods 1-2): Offering 34 (219102001 ระบบปฏิบัติการเบื้องต้น Sess 1) Room 0502-2202
+  { id: 45, schedule_version_id: 1, course_offering_id: 34, session_index: 1, period_length: 2, day_of_week: 4, start_timeslot_id: 1, end_timeslot_id: 2, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
+  // Thu 13:00-17:00 (periods 6-9): Offering 35 (219102013 ระบบเครือข่ายคอมพิวเตอร์) Room 0502-2202
+  { id: 46, schedule_version_id: 1, course_offering_id: 35, session_index: 0, period_length: 4, day_of_week: 4, start_timeslot_id: 6, end_timeslot_id: 9, room_id: 12, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
+  // Fri 13:00-17:00 (periods 6-9): Offering 36 (219102016 การสร้างเว็บไซต์สำหรับธุรกิจดิจิทัล) Room 0502-2101
+  { id: 47, schedule_version_id: 1, course_offering_id: 36, session_index: 0, period_length: 4, day_of_week: 5, start_timeslot_id: 6, end_timeslot_id: 9, room_id: 13, is_locked: false, created_at: '2026-06-01 08:30:00', updated_at: '2026-06-01 08:30:00' },
 
   // Group 1: BC66-1
   // Mon: Offering 1 (Database) Sess 0, 2 periods (08:00-10:00, p3-p4), Room LAB-431

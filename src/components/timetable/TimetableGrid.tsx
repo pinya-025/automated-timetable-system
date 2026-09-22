@@ -1,19 +1,13 @@
 import React, { useState } from 'react';
 import {
-  Filter,
   Users,
-  GraduationCap,
+  UserCheck,
   DoorClosed,
-  Building,
-  Layers,
+  LayoutGrid,
   Lock,
   Sparkles,
-  Move,
-  Info,
   Calendar,
-  Coffee,
-  Flag,
-  RotateCcw,
+  FileSpreadsheet,
   FileText,
   Plus,
   Edit2,
@@ -21,7 +15,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   X,
-  Printer,
+  Send,
 } from 'lucide-react';
 import {
   ScheduleEntry,
@@ -56,6 +50,7 @@ interface TimetableGridProps {
   onAddEntry?: (entry: Omit<ScheduleEntry, 'id'>) => void;
   onUpdateEntry?: (entry: ScheduleEntry) => void;
   onDeleteEntry?: (entryId: number) => void;
+  onTogglePublish?: () => void;
   activeSemester?: Semester;
   settings?: AppSettings;
   currentUser?: import('../../types').User | null;
@@ -79,6 +74,7 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
   onAddEntry,
   onUpdateEntry,
   onDeleteEntry,
+  onTogglePublish,
   activeSemester,
   settings,
   currentUser,
@@ -88,15 +84,22 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
     if (currentRole === 'student') return 'group';
     return 'teacher';
   });
+
   const [selectedGroupId, setSelectedGroupId] = useState<number>(() => {
     if (currentUser?.student_group_id) return currentUser.student_group_id;
-    return studentGroups[0]?.id || 1;
+    return studentGroups.find((g) => g.code === 'คธ.1')?.id || studentGroups[0]?.id || 6;
   });
+
   const [selectedTeacherId, setSelectedTeacherId] = useState<number>(() => {
     if (currentUser?.teacher_id) return currentUser.teacher_id;
-    return teachers.find(t => t.name.includes('ภิญญา'))?.id || teachers[0]?.id || 1;
+    const pinya = teachers.find((t) => t.name.includes('ภิญญา'));
+    return pinya ? pinya.id : teachers[0]?.id || 11;
   });
-  const [selectedRoomId, setSelectedRoomId] = useState<number>(rooms[0]?.id || 1);
+
+  const [selectedRoomId, setSelectedRoomId] = useState<number>(() => {
+    return rooms.find((r) => r.room_number.includes('0502-2303'))?.id || rooms[0]?.id || 11;
+  });
+
   const [showWeekend, setShowWeekend] = useState(false);
 
   // Sync if currentUser changes
@@ -117,9 +120,9 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
   // Form states for manual schedule entry
   const [mOfferingId, setMOfferingId] = useState<number>(offerings[0]?.id || 1);
   const [mDay, setMDay] = useState<number>(1);
-  const [mStartSlot, setMStartSlot] = useState<number>(1);
+  const [mStartSlot, setMStartSlot] = useState<number>(6);
   const [mPeriodLength, setMPeriodLength] = useState<number>(2);
-  const [mRoomId, setMRoomId] = useState<number>(rooms[0]?.id || 1);
+  const [mRoomId, setMRoomId] = useState<number>(rooms[0]?.id || 11);
 
   // Drag state
   const [draggedEntryId, setDraggedEntryId] = useState<number | null>(null);
@@ -158,6 +161,40 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
         (b.day_of_week === 0 || b.day_of_week === day) &&
         (b.timeslot_id === slotId || (slotObj?.is_lunch && b.type === 'LUNCH'))
     );
+  };
+
+  // Export to Excel function
+  const handleExportExcel = () => {
+    const csvRows = [
+      ['วัน', 'คาบเรียน', 'เวลา', 'รหัสวิชา', 'ชื่อวิชา', 'กลุ่มเรียน', 'อาจารย์ผู้สอน', 'ห้องเรียน'],
+    ];
+    filteredEntries.forEach((entry) => {
+      const off = offeringMap.get(entry.course_offering_id);
+      const crs = off ? courseMap.get(off.course_id) : null;
+      const tch = off ? teacherMap.get(off.teacher_id) : null;
+      const grp = off ? groupMap.get(off.student_group_id) : null;
+      const rm = roomMap.get(entry.room_id);
+      const startSlot = timeslots.find((s) => s.id === entry.start_timeslot_id);
+      const endSlot = timeslots.find((s) => s.id === entry.end_timeslot_id);
+      csvRows.push([
+        getDayName(entry.day_of_week),
+        `คาบ ${entry.start_timeslot_id} - ${entry.end_timeslot_id}`,
+        `${startSlot?.start_time || ''} - ${endSlot?.end_time || ''}`,
+        crs?.code || '',
+        crs?.name_th || '',
+        grp?.code || '',
+        `${tch?.prefix || ''}${tch?.name || ''}`,
+        rm?.room_number || '',
+      ]);
+    });
+    const csvContent = '\uFEFF' + csvRows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ตารางเรียน_${viewMode}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Conflict calculation for manual modal
@@ -204,9 +241,9 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
       manualConflicts.push(`กลุ่มนักศึกษา ${selectedGroup?.code} ติดเรียนวิชาอื่นในช่วงเวลานี้`);
     }
 
-    // Lunch break clash: only slot 7 (12:00 - 13:00)
+    // Lunch break clash: slot with is_lunch
     const lunchSlot = timeslots.find((s) => s.is_lunch) || timeslots.find((s) => s.start_time === '12:00');
-    const lunchSlotId = lunchSlot ? lunchSlot.id : 7;
+    const lunchSlotId = lunchSlot ? lunchSlot.id : 5;
     if (mStartSlot <= lunchSlotId && endSlot >= lunchSlotId) {
       manualConflicts.push('ช่วงเวลานี้ตรงกับช่วงพักกลางวัน (12:00 - 13:00 น.)');
     }
@@ -218,7 +255,7 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
     if (slot) setMStartSlot(slot);
     setMPeriodLength(2);
     setMOfferingId(offerings[0]?.id || 1);
-    setMRoomId(rooms[0]?.id || 1);
+    setMRoomId(rooms[0]?.id || 11);
     setIsManualModalOpen(true);
   };
 
@@ -302,152 +339,223 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
     onRequestMove(entryId, targetDay, targetSlot, targetRoomId);
   };
 
+  const viewTitleText =
+    viewMode === 'teacher'
+      ? 'รายอาจารย์'
+      : viewMode === 'group'
+      ? 'รายกลุ่มเรียน'
+      : viewMode === 'room'
+      ? 'รายห้องเรียน'
+      : 'ตารางรวม';
+
+  // Find the selected teacher name for the subtitle / selector
+  const activeTeacher = teacherMap.get(selectedTeacherId);
+
   return (
     <div className="space-y-4">
-      {/* Top Filter and Controls Bar */}
-      <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        {/* View Mode Toggle Buttons */}
-        <div className="flex items-center space-x-1 p-1 bg-slate-100 rounded-lg text-xs font-medium">
-          <button
-            onClick={() => setViewMode('group')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md transition-all ${
-              viewMode === 'group'
-                ? 'bg-white text-blue-700 font-semibold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>รายกลุ่มเรียน</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode('teacher')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-sm transition-all ${
-              viewMode === 'teacher'
-                ? 'bg-white text-blue-700 font-semibold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 font-medium'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>รายอาจารย์</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode('room')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-sm transition-all ${
-              viewMode === 'room'
-                ? 'bg-white text-blue-700 font-semibold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 font-medium'
-            }`}
-          >
-            <DoorClosed className="w-4 h-4" />
-            <span>รายห้องเรียน</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode('master')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-sm transition-all ${
-              viewMode === 'master'
-                ? 'bg-white text-blue-700 font-semibold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 font-medium'
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>ตารางรวม</span>
-          </button>
+      {/* Top Header: Title & Main Action Buttons */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-1">
+        <div className="flex items-start space-x-3">
+          <div className="text-blue-600 p-1 mt-0.5">
+            <Calendar className="w-7 h-7" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
+              ตารางเรียน - ตารางสอน ({viewTitleText})
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {settings?.faculty_name || 'วิทยาลัยธาตุพนม / คณะวิทยาการจัดการและเทคโนโลยีสารสนเทศ'} •{' '}
+              {activeSemester?.name || 'ภาคเรียนที่ 1/2569'}
+            </p>
+          </div>
         </div>
 
-        {/* Dynamic Selector based on ViewMode */}
-        <div className="flex items-center space-x-3 w-full md:w-auto">
-          {viewMode === 'group' && (
-            <div className="flex items-center space-x-2 w-full md:w-auto">
-              <span className="text-sm text-slate-600 font-medium whitespace-nowrap">เลือกกลุ่มเรียน:</span>
-              <select
-                value={selectedGroupId}
-                onChange={(e) => setSelectedGroupId(Number(e.target.value))}
-                className="text-sm font-semibold bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2 focus:ring-2 focus:ring-blue-500 w-full md:w-72"
-              >
-                {studentGroups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.code} - {g.name} ({g.student_count} คน)
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {viewMode === 'teacher' && (
-            <div className="flex items-center space-x-2 w-full md:w-auto">
-              <span className="text-sm text-slate-600 font-medium whitespace-nowrap">เลือกอาจารย์:</span>
-              <select
-                value={selectedTeacherId}
-                onChange={(e) => setSelectedTeacherId(Number(e.target.value))}
-                className="text-sm font-semibold bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2 focus:ring-2 focus:ring-blue-500 w-full md:w-72"
-              >
-                {teachers.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.prefix} {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {viewMode === 'room' && (
-            <div className="flex items-center space-x-2 w-full md:w-auto">
-              <span className="text-sm text-slate-600 font-medium whitespace-nowrap">เลือกห้องเรียน:</span>
-              <select
-                value={selectedRoomId}
-                onChange={(e) => setSelectedRoomId(Number(e.target.value))}
-                className="text-sm font-semibold bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2 focus:ring-2 focus:ring-blue-500 w-full md:w-72"
-              >
-                {rooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.room_number} ({r.building}, จุ {r.capacity} คน)
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {isVersionPublished && (
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium">
-              <Lock className="w-3.5 h-3.5 text-amber-600" />
-              <span>ตาราง Publish แล้ว (Locked)</span>
-            </div>
-          )}
-
+        {/* Top Right Action Buttons: Excel, PDF, Publish */}
+        <div className="flex items-center space-x-2 shrink-0">
           <button
-            onClick={() => setShowWeekend(!showWeekend)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-              showWeekend
-                ? 'bg-purple-50 text-purple-800 border-purple-300'
-                : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
-            }`}
-            title="สลับแสดง 5 วัน หรือ 7 วัน"
+            type="button"
+            onClick={handleExportExcel}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
           >
-            {showWeekend ? 'แสดง 7 วัน (จ.-อา.)' : 'แสดง 5 วัน (จ.-ศ.)'}
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>ส่งออก Excel</span>
           </button>
 
           <button
-            onClick={() => handleOpenManualAdd()}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all"
+            type="button"
+            onClick={() => setShowOfficialDoc(true)}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-rose-300 bg-white hover:bg-rose-50 text-rose-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>จัดคาบลงตาราง (เจ้าหน้าที่)</span>
+            <FileText className="w-4 h-4 text-rose-600" />
+            <span>ดูแบบฟอร์มทางการ 15 สัปดาห์ (PDF)</span>
           </button>
 
           <button
-            onClick={() => setShowOfficialDoc(!showOfficialDoc)}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              showOfficialDoc
-                ? 'bg-[#8B7D52] text-white shadow-xs'
-                : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
-            }`}
+            type="button"
+            onClick={() => onTogglePublish?.()}
+            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer active:scale-95"
           >
-            <FileText className="w-3.5 h-3.5" />
-            <span>{showOfficialDoc ? 'สลับกลับโหมดจัดตาราง' : 'ดูแบบฟอร์มทางการ 15 คาบ'}</span>
+            <Send className="w-3.5 h-3.5" />
+            <span>{isVersionPublished ? 'เผยแพร่แล้ว (Published)' : 'เผยแพร่ตาราง (Publish)'}</span>
           </button>
+        </div>
+      </div>
+
+      {/* Timetable Control & Filter Card */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-3">
+        {/* Row 1: Segmented View Selector, Dropdown Filter, Status Badge, Add Button */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Segmented View Switcher */}
+          <div className="inline-flex rounded-lg border border-blue-500 overflow-hidden divide-x divide-blue-400/50 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setViewMode('group')}
+              className={`flex items-center space-x-1.5 px-3.5 py-2 text-xs transition-colors cursor-pointer ${
+                viewMode === 'group'
+                  ? 'bg-blue-600 text-white font-bold'
+                  : 'bg-white text-blue-600 hover:bg-blue-50 font-semibold'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>รายกลุ่มเรียน</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setViewMode('teacher')}
+              className={`flex items-center space-x-1.5 px-3.5 py-2 text-xs transition-colors cursor-pointer ${
+                viewMode === 'teacher'
+                  ? 'bg-blue-600 text-white font-bold'
+                  : 'bg-white text-blue-600 hover:bg-blue-50 font-semibold'
+              }`}
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>รายอาจารย์</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setViewMode('room')}
+              className={`flex items-center space-x-1.5 px-3.5 py-2 text-xs transition-colors cursor-pointer ${
+                viewMode === 'room'
+                  ? 'bg-blue-600 text-white font-bold'
+                  : 'bg-white text-blue-600 hover:bg-blue-50 font-semibold'
+              }`}
+            >
+              <DoorClosed className="w-3.5 h-3.5" />
+              <span>รายห้องเรียน</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setViewMode('master')}
+              className={`flex items-center space-x-1.5 px-3.5 py-2 text-xs transition-colors cursor-pointer ${
+                viewMode === 'master'
+                  ? 'bg-blue-600 text-white font-bold'
+                  : 'bg-white text-blue-600 hover:bg-blue-50 font-semibold'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>ตารางรวม</span>
+            </button>
+          </div>
+
+          {/* Dynamic Selector Dropdown based on ViewMode */}
+          <div className="flex flex-wrap items-center space-x-3">
+            {viewMode === 'group' && (
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold text-slate-700 whitespace-nowrap">เลือกกลุ่มเรียน:</span>
+                <select
+                  value={selectedGroupId}
+                  onChange={(e) => setSelectedGroupId(Number(e.target.value))}
+                  className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-1.5 bg-white w-64 focus:ring-2 focus:ring-blue-500 focus:outline-hidden cursor-pointer"
+                >
+                  {studentGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.code} - {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {viewMode === 'teacher' && (
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold text-slate-700 whitespace-nowrap">เลือกอาจารย์:</span>
+                <select
+                  value={selectedTeacherId}
+                  onChange={(e) => setSelectedTeacherId(Number(e.target.value))}
+                  className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-1.5 bg-white w-64 sm:w-80 focus:ring-2 focus:ring-blue-500 focus:outline-hidden cursor-pointer"
+                >
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.prefix}{t.name} (สาขาวิทยาการคอมพิวเตอร์และเทคโนโลยีสารสนเทศ)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {viewMode === 'room' && (
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold text-slate-700 whitespace-nowrap">เลือกห้องเรียน:</span>
+                <select
+                  value={selectedRoomId}
+                  onChange={(e) => setSelectedRoomId(Number(e.target.value))}
+                  className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-1.5 bg-white w-64 focus:ring-2 focus:ring-blue-500 focus:outline-hidden cursor-pointer"
+                >
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.room_number} ({r.building})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Status Badge */}
+            <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-100 text-amber-900 border border-amber-300">
+              <Lock className="w-3.5 h-3.5 text-amber-700" />
+              <span>สถานะ: {isVersionPublished ? 'Published (ล็อกแล้ว)' : 'Draft (แก้ไขได้)'}</span>
+            </div>
+
+            {/* Add Class Button */}
+            <button
+              type="button"
+              onClick={() => handleOpenManualAdd()}
+              className="flex items-center space-x-1 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>เพิ่มคาบสอน</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: Legend & Category Colors */}
+        <div className="flex flex-wrap items-center space-x-4 text-xs text-slate-700 pt-1">
+          <span className="font-bold text-slate-800">ประเภทวิชา:</span>
+          <span className="flex items-center space-x-1.5">
+            <span className="w-3 h-3 rounded-xs bg-blue-600 inline-block" />
+            <span>วิชาบรรยาย (Lecture)</span>
+          </span>
+          <span className="flex items-center space-x-1.5">
+            <span className="w-3 h-3 rounded-xs bg-emerald-600 inline-block" />
+            <span>วิชาปฏิบัติการ (Lab)</span>
+          </span>
+          <span className="flex items-center space-x-1.5">
+            <span className="w-3 h-3 rounded-xs bg-amber-500 inline-block" />
+            <span>พักกลางวัน (12:00-13:00)</span>
+          </span>
+          <span className="flex items-center space-x-1.5">
+            <span className="w-3 h-3 rounded-xs bg-purple-600 inline-block" />
+            <span>กิจกรรมเสริมทักษะวิชาการ</span>
+          </span>
+        </div>
+
+        {/* Row 3: Hint Note */}
+        <div className="flex items-center space-x-1.5 text-xs text-slate-500 pt-0.5">
+          <span className="text-amber-500">📍</span>
+          <span>คลิกที่ช่องว่างเพื่อเพิ่มวิชาเรียน หรือคลิกไอคอนดินสอบนการ์ดเพื่อแก้ไข</span>
         </div>
       </div>
 
@@ -472,243 +580,262 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
           onViewModeChange={(m) => setViewMode(m)}
         />
       ) : (
-        <>
-
-      {/* Grid Legend & Instructions */}
-      <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 px-1 gap-2">
-        <div className="flex items-center space-x-4">
-          <span className="flex items-center space-x-1.5">
-            <span className="w-3 h-3 rounded bg-blue-50 border border-blue-200 inline-block" />
-            <span>วิชาบรรยาย (Lecture)</span>
-          </span>
-          <span className="flex items-center space-x-1.5">
-            <span className="w-3 h-3 rounded bg-indigo-100 border border-indigo-300 inline-block" />
-            <span>วิชาปฏิบัติการ (Computer Lab)</span>
-          </span>
-          <span className="flex items-center space-x-1.5">
-            <span className="w-3 h-3 rounded bg-amber-100 border border-amber-300 inline-block" />
-            <span>พักกลางวัน (12:00-13:00)</span>
-          </span>
-          <span className="flex items-center space-x-1.5">
-            <span className="w-3 h-3 rounded bg-purple-100 border border-purple-300 inline-block" />
-            <span>คาบกิจกรรม (พุธ 15:00-16:00)</span>
-          </span>
-        </div>
-
-        <span className="text-[11px] text-slate-400 italic">
-          * สามารถคลิกลาก (Drag & Drop) เพื่อย้ายคาบเรียนได้ โดยระบบจะตรวจสอบข้อขัดแย้งแบบ Real-time
-        </span>
-      </div>
-
-      {/* Timetable Weekly Matrix Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-x-auto">
-        <table className="w-full border-collapse text-left min-w-[950px]">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-              <th className="w-28 py-3 px-3 border-r border-slate-200 text-center">วัน / เวลา</th>
-              {timeslots.map((slot) => (
-                <th
-                  key={slot.id}
-                  className={`py-2 px-2 border-r border-slate-200 text-center font-semibold ${
-                    slot.is_lunch ? 'bg-amber-50/70 text-amber-900' : ''
-                  }`}
-                >
-                  <div className="text-sm font-bold text-slate-800">คาบ {slot.period_number}</div>
-                  <div className="text-xs text-slate-500 font-mono font-medium">
-                    {slot.start_time} - {slot.end_time}
-                  </div>
+        /* Timetable Weekly Matrix Table */
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-x-auto">
+          <table className="w-full border-collapse text-left min-w-[950px]">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700">
+                <th className="w-28 py-3 px-3 border-r border-slate-200 text-center uppercase tracking-wider">
+                  วัน / เวลา
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200">
-            {days.map((day) => {
-              return (
-                <tr key={day} className="h-28 hover:bg-slate-50/40 transition-colors">
-                  {/* Day Column Header */}
-                  <td className="py-2.5 px-3.5 border-r border-slate-200 font-semibold text-sm text-slate-800 bg-slate-50/80 text-center align-middle">
-                    <div className="font-bold text-slate-900 text-base">{getDayShortName(day)}</div>
-                    <div className="text-xs text-slate-500 font-medium">Day {day}</div>
-                  </td>
-
-                  {/* 9 Timeslot Columns */}
-                  {timeslots.map((slot) => {
-                    const blocked = getBlockedSlotInfo(day, slot.id);
-
-                    // Find if any entry starts at this slot for this day
-                    const matchingEntries = filteredEntries.filter(
-                      (e) => e.day_of_week === day && e.start_timeslot_id === slot.id
+                {timeslots.map((slot) => {
+                  if (slot.is_lunch) {
+                    return (
+                      <th
+                        key={slot.id}
+                        className="py-2.5 px-2 border-r border-dashed border-amber-300 text-center font-semibold bg-amber-50 text-amber-900 w-16"
+                      >
+                        <div className="text-sm font-bold text-amber-900">พัก</div>
+                        <div className="text-xs text-amber-700 font-medium">12:00 - 13:00</div>
+                      </th>
                     );
+                  }
 
-                    // Check if this cell is spanned by an earlier multi-period entry
-                    const isSpanned = filteredEntries.some(
-                      (e) =>
-                        e.day_of_week === day &&
-                        slot.id > e.start_timeslot_id &&
-                        slot.id <= e.end_timeslot_id
-                    );
+                  return (
+                    <th
+                      key={slot.id}
+                      className="py-2.5 px-2 border-r border-slate-200 text-center font-semibold"
+                    >
+                      <div className="text-sm font-bold text-slate-800">คาบ {slot.period_number}</div>
+                      <div className="text-xs text-slate-500 font-medium">
+                        {slot.start_time} - {slot.end_time}
+                      </div>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {days.map((day) => {
+                const dayNameEn =
+                  day === 1
+                    ? 'MONDAY'
+                    : day === 2
+                    ? 'TUESDAY'
+                    : day === 3
+                    ? 'WEDNESDAY'
+                    : day === 4
+                    ? 'THURSDAY'
+                    : day === 5
+                    ? 'FRIDAY'
+                    : day === 6
+                    ? 'SATURDAY'
+                    : 'SUNDAY';
 
-                    if (isSpanned) {
-                      // Already occupied by a multi-period card
-                      return null;
-                    }
+                return (
+                  <tr key={day} className="h-28 hover:bg-slate-50/40 transition-colors">
+                    {/* Day Column Header */}
+                    <td className="py-2.5 px-3.5 border-r border-slate-200 font-semibold text-sm text-slate-800 bg-slate-50/80 text-center align-middle">
+                      <div className="font-bold text-slate-900 text-sm">{getDayName(day)}</div>
+                      <div className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-0.5">
+                        {dayNameEn}
+                      </div>
+                    </td>
 
-                    // Blocked timeslot styling (Lunch or Wednesday activity)
-                    if (blocked) {
+                    {/* Timeslot Columns */}
+                    {timeslots.map((slot) => {
+                      // Blocked timeslot check
+                      const blocked = getBlockedSlotInfo(day, slot.id);
+
+                      // Lunch break column: special vertical styling
+                      if (slot.is_lunch) {
+                        return (
+                          <td
+                            key={slot.id}
+                            className="p-0 border-r border-dashed border-amber-300 bg-amber-50/40 text-center align-middle"
+                          >
+                            <div className="flex flex-col items-center justify-center h-full [writing-mode:vertical-lr] text-amber-600 font-bold text-xs tracking-widest select-none py-4 space-y-1.5">
+                              <span className="rotate-90 text-sm">🍴</span>
+                              <span>พักกลางวัน</span>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      // Find if any entry starts at this slot for this day
+                      const matchingEntries = filteredEntries.filter(
+                        (e) => e.day_of_week === day && e.start_timeslot_id === slot.id
+                      );
+
+                      // Check if this cell is spanned by an earlier multi-period entry
+                      const isSpanned = filteredEntries.some(
+                        (e) =>
+                          e.day_of_week === day &&
+                          slot.id > e.start_timeslot_id &&
+                          slot.id <= e.end_timeslot_id
+                      );
+
+                      if (isSpanned) {
+                        // Already occupied by a multi-period card
+                        return null;
+                      }
+
+                      // Wednesday Activity blocked styling
+                      if (blocked && blocked.type === 'ACTIVITY') {
+                        return (
+                          <td
+                            key={slot.id}
+                            className="p-2 border-r border-slate-200 text-center align-middle bg-purple-50/70 text-purple-800"
+                          >
+                            <div className="flex flex-col items-center justify-center space-y-1">
+                              <Sparkles className="w-4 h-4 text-purple-600" />
+                              <span className="text-xs font-bold leading-tight">{blocked.title}</span>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      const isDropTarget = dragOverDay === day && dragOverSlot === slot.id;
+
                       return (
                         <td
                           key={slot.id}
-                          className={`p-2.5 border-r border-slate-200 text-center align-middle ${
-                            blocked.type === 'LUNCH'
-                              ? 'bg-amber-50/70 text-amber-800'
-                              : 'bg-purple-50/70 text-purple-800'
+                          colSpan={matchingEntries.length > 0 ? matchingEntries[0].period_length : 1}
+                          onDragOver={(e) => handleDragOver(e, day, slot.id)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, day, slot.id)}
+                          className={`p-1.5 border-r border-slate-200 align-top transition-colors relative ${
+                            isDropTarget ? 'bg-blue-100 ring-2 ring-blue-400 ring-inset' : ''
                           }`}
                         >
-                          <div className="flex flex-col items-center justify-center space-y-1.5">
-                            {blocked.type === 'LUNCH' ? (
-                              <Coffee className="w-5 h-5 text-amber-600" />
-                            ) : (
-                              <Flag className="w-5 h-5 text-purple-600" />
-                            )}
-                            <span className="text-xs font-bold leading-tight">{blocked.title}</span>
-                          </div>
-                        </td>
-                      );
-                    }
+                          {matchingEntries.map((entry) => {
+                            const off = offeringMap.get(entry.course_offering_id);
+                            const crs = off ? courseMap.get(off.course_id) : null;
+                            const tch = off ? teacherMap.get(off.teacher_id) : null;
+                            const grp = off ? groupMap.get(off.student_group_id) : null;
+                            const rm = roomMap.get(entry.room_id);
 
-                    const isDropTarget = dragOverDay === day && dragOverSlot === slot.id;
+                            const isActivity =
+                              crs?.code === 'ACTIVITY-WED' || off?.course_id === 28;
+                            const isLab =
+                              !isActivity &&
+                              (off?.room_type_id === 2 ||
+                                off?.room_type_id === 3 ||
+                                off?.room_type_id === 4);
 
-                    return (
-                      <td
-                        key={slot.id}
-                        colSpan={matchingEntries.length > 0 ? matchingEntries[0].period_length : 1}
-                        onDragOver={(e) => handleDragOver(e, day, slot.id)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, day, slot.id)}
-                        className={`p-1.5 border-r border-slate-200 align-top transition-colors relative ${
-                          isDropTarget ? 'bg-blue-100 ring-2 ring-blue-400 ring-inset' : ''
-                        }`}
-                      >
-                        {matchingEntries.map((entry) => {
-                          const off = offeringMap.get(entry.course_offering_id);
-                          const crs = off ? courseMap.get(off.course_id) : null;
-                          const tch = off ? teacherMap.get(off.teacher_id) : null;
-                          const grp = off ? groupMap.get(off.student_group_id) : null;
-                          const rm = roomMap.get(entry.room_id);
-
-                          const isLab = off?.room_type_id === 2 || off?.room_type_id === 3 || off?.room_type_id === 4;
-
-                          return (
-                            <div
-                              key={entry.id}
-                              draggable={!isVersionPublished}
-                              onDragStart={(e) => handleDragStart(e, entry.id)}
-                              className={`rounded-lg p-3 shadow-xs border transition-all select-none cursor-move hover:shadow-md ${
-                                isLab
-                                  ? 'bg-indigo-50/90 border-indigo-200 text-indigo-950'
-                                  : 'bg-blue-50/90 border-blue-200 text-blue-950'
-                              }`}
-                              style={{ borderLeftWidth: '5px', borderLeftColor: tch?.color_code || '#3b82f6' }}
-                            >
-                              <div className="flex items-start justify-between gap-1">
-                                <div className="space-y-1">
-                                  <div className="flex items-center space-x-2">
-                                    <span className="font-mono text-xs font-bold text-blue-700 bg-white/80 px-1.5 py-0.5 rounded border border-blue-100">
+                            return (
+                              <div
+                                key={entry.id}
+                                draggable={!isVersionPublished}
+                                onDragStart={(e) => handleDragStart(e, entry.id)}
+                                className={`rounded-lg p-2.5 shadow-2xs border transition-all select-none cursor-move hover:shadow-md ${
+                                  isActivity
+                                    ? 'bg-purple-50/90 border-purple-200 border-l-4 border-l-purple-600 text-purple-950'
+                                    : isLab
+                                    ? 'bg-emerald-50/90 border-emerald-200 border-l-4 border-l-emerald-600 text-emerald-950'
+                                    : 'bg-sky-50/90 border-blue-200 border-l-4 border-l-blue-600 text-blue-950'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-1">
+                                  <div className="flex items-center space-x-1.5 flex-wrap">
+                                    <span className="font-bold text-xs text-slate-900">
                                       {crs?.code}
                                     </span>
-                                    <span className="text-xs px-1.5 py-0.5 rounded bg-white border border-slate-200 font-semibold text-slate-700">
+                                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
                                       {entry.period_length} คาบ
                                     </span>
                                   </div>
-                                  <h4 className="text-sm font-bold leading-snug line-clamp-1">
-                                    {crs?.name_th}
-                                  </h4>
-                                </div>
 
-                                <div className="flex items-center space-x-1 shrink-0">
-                                  <button
-                                    onClick={() => handleOpenEditEntry(entry)}
-                                    title="แก้ไขคาบ/ห้องเรียน (Edit Slot/Room)"
-                                    className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-white rounded-md transition-colors"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => onOpenSuggestModal(entry.id)}
-                                    title="ค้นหาช่วงเวลาที่เหมาะสม (Suggest Alternative Slot)"
-                                    className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-white rounded-md transition-colors"
-                                  >
-                                    <Sparkles className="w-4 h-4" />
-                                  </button>
-                                  {onDeleteEntry && (
+                                  <div className="flex items-center space-x-1 shrink-0">
                                     <button
-                                      onClick={() => {
-                                        if (confirm(`ต้องการปลดวิชา ${crs?.name_th} ออกจากตารางหรือไม่? (ระบบจะลบออกจากฐานข้อมูลด้วย)`)) {
-                                          onDeleteEntry(entry.id);
-                                        }
-                                      }}
-                                      title="ปลดวิชาออกจากตาราง (Remove from slot)"
-                                      className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-white rounded-md transition-colors"
+                                      type="button"
+                                      onClick={() => handleOpenEditEntry(entry)}
+                                      title="แก้ไขคาบ/ห้องเรียน"
+                                      className="p-1 text-slate-400 hover:text-blue-600 hover:bg-white rounded transition-colors cursor-pointer"
                                     >
-                                      <Trash2 className="w-4 h-4" />
+                                      <Edit2 className="w-3.5 h-3.5" />
                                     </button>
-                                  )}
+                                    {onDeleteEntry && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (
+                                            confirm(
+                                              `ต้องการปลดวิชา ${crs?.name_th} ออกจากตารางหรือไม่?`
+                                            )
+                                          ) {
+                                            onDeleteEntry(entry.id);
+                                          }
+                                        }}
+                                        title="ลบออกจากตาราง"
+                                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-white rounded transition-colors cursor-pointer"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <h4 className="text-xs font-bold text-slate-900 mt-1 line-clamp-1 leading-snug">
+                                  {crs?.name_th}
+                                </h4>
+
+                                <div className="mt-1.5 text-[11px] text-slate-600 space-y-0.5">
+                                  <div className="flex items-center justify-between">
+                                    <span>📍 ห้อง: {rm?.room_number}</span>
+                                    {grp?.code && (
+                                      <span className="text-slate-700 font-semibold">
+                                        กลุ่ม: {grp?.code}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-slate-600">
+                                    👤 {tch?.prefix}
+                                    {tch?.name}
+                                  </div>
                                 </div>
                               </div>
+                            );
+                          })}
 
-                              <div className="mt-2.5 pt-2 border-t border-slate-200/80 space-y-1 text-xs text-slate-700">
-                                <div className="flex items-center justify-between">
-                                  <span className="truncate max-w-[160px]">
-                                    ผู้สอน: <span className="font-semibold text-slate-900">{tch?.prefix}{tch?.name}</span>
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between font-mono text-xs">
-                                  <span>ห้อง: <span className="font-bold text-slate-900 bg-white/70 px-1 py-0.2 rounded border border-slate-200">{rm?.room_number}</span></span>
-                                  <span className="text-slate-600 font-medium">กลุ่ม: {grp?.code}</span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {/* Empty droppable area indicator */}
-                        {matchingEntries.length === 0 && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenManualAdd(day, slot.id)}
-                            className="w-full h-full min-h-[5rem] flex flex-col items-center justify-center text-slate-300 hover:text-blue-600 hover:bg-blue-50/40 rounded transition-all group"
-                            title="คลิกเพื่อจัดวิชาลงคาบนี้โดยตรง"
-                          >
-                            <Plus className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity mb-0.5" />
-                            <span className="text-[10px] font-mono group-hover:font-bold">ว่าง</span>
-                          </button>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-        </>
+                          {/* Empty droppable area indicator */}
+                          {matchingEntries.length === 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenManualAdd(day, slot.id)}
+                              className="w-full h-full min-h-[4.5rem] flex flex-col items-center justify-center text-slate-300 hover:text-blue-600 hover:bg-blue-50/40 rounded transition-all group cursor-pointer"
+                              title="คลิกเพื่อจัดวิชาลงคาบนี้โดยตรง"
+                            >
+                              <Plus className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity mb-0.5" />
+                              <span className="text-[10px] font-mono group-hover:font-bold">ว่าง</span>
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      {/* Manual Class Scheduling Modal for Academic Affairs */}
+      {/* Manual Class Scheduling Modal */}
       {isManualModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden">
-            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+            <div className="px-6 py-4 bg-[#1e2430] text-white flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Plus className="w-5 h-5 text-blue-400" />
                 <h3 className="font-bold text-base">
-                  {editingEntry ? 'แก้ไขข้อมูลคาบเรียน / ห้องเรียน' : 'จัดวิชาลงตารางด้วยตนเอง (สำหรับฝ่ายวิชาการ)'}
+                  {editingEntry ? 'แก้ไขข้อมูลคาบเรียน / ห้องเรียน' : 'จัดวิชาลงตารางด้วยตนเอง (เจ้าหน้าที่)'}
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setIsManualModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -804,7 +931,7 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
                 </select>
               </div>
 
-              {/* Real-time Conflict Validation Banner */}
+              {/* Conflict Validation Banner */}
               <div className="pt-1">
                 {manualConflicts.length > 0 ? (
                   <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-1 text-rose-800">
@@ -830,13 +957,13 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsManualModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition-colors"
+                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition-colors cursor-pointer"
                 >
                   {editingEntry ? 'บันทึกการแก้ไข' : 'ยืนยันจัดลงตาราง'}
                 </button>
